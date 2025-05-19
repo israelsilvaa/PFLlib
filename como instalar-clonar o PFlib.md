@@ -61,12 +61,15 @@ Depois, ative o ambiente:
 ## 🚀 5. Rodar o treino
 
 Base: **MNIST**  
-Rodadas: **20**  
-Clientes totais: **20**  
-Clientes por rodada: **20%**
+| Flag  | Significado              | Valor | Interpretação                                      |
+|-------|---------------------------|--------|----------------------------------------------------|
+| `-gr` | Global Rounds             | 50     | São as **rodadas de comunicação** (20 rounds)      |
+| `-jr` | Join Ratio                | 0.2    | Proporção de **clientes por rodada** (0.2 × 20 = 4)|
+| `-nc` | Number of Clients         | 20     | Número total de **clientes disponíveis** no sistema|
+
 
 ```bash
-    $ python main.py -data MNIST -m CNN -algo FedAvg -gr 20 -jr 0.2 -nc 20
+    $ python main.py -data MNIST -m CNN -algo FedAvg -gr 50 -jr 0.2 -nc 20
 ```
 
 para ver o grafico do ultimo treinamento
