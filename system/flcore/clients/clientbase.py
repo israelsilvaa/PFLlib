@@ -50,6 +50,7 @@ class Client(object):
             gamma=args.learning_rate_decay_gamma
         )
         self.learning_rate_decay = args.learning_rate_decay
+        self.test_accuracy = 0.0
 
 
     def load_train_data(self, batch_size=None):
@@ -116,7 +117,9 @@ class Client(object):
         y_true = np.concatenate(y_true, axis=0)
 
         auc = metrics.roc_auc_score(y_true, y_prob, average='micro')
-        
+
+        self.test_accuracy = test_acc / test_num  # Salva a acurácia no próprio cliente
+
         return test_acc, test_num, auc
 
     def train_metrics(self):

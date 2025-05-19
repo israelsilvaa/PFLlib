@@ -91,14 +91,41 @@ class Server(object):
         self.send_slow_clients = self.select_slow_clients(
             self.send_slow_rate)
 
+    #                          metodo original do PFLlib
+    # def select_clients(self):
+    #     if self.random_join_ratio:
+    #         self.current_num_join_clients = np.random.choice(range(self.num_join_clients, self.num_clients+1), 1, replace=False)[0]
+    #     else:
+    #         self.current_num_join_clients = self.num_join_clients
+    #     selected_clients = list(np.random.choice(self.clients, self.current_num_join_clients, replace=False))
+
+    #     return selected_clients
+
+
+    #                          SELECIONA top k clientes para as proximas rodadas de treino
+    # def select_clients_ENVIEZADO(self):
+    #     if hasattr(self.clients[0], "test_accuracy") and all(hasattr(c, "test_accuracy") for c in self.clients):
+    #         # Seleciona os top-N clientes com melhor acurácia
+    #         selected_clients = sorted(self.clients, key=lambda c: c.test_accuracy, reverse=True)[:self.num_join_clients]
+    #     else:
+    #         # Seleção aleatória (como fallback)
+    #         selected_clients = list(np.random.choice(self.clients, self.num_join_clients, replace=False))
+
+    #     return selected_clients
+
+    #                          SELECIONA (top k + alaetorios) clientes para as proximas rodadas de treino
     def select_clients(self):
-        if self.random_join_ratio:
-            self.current_num_join_clients = np.random.choice(range(self.num_join_clients, self.num_clients+1), 1, replace=False)[0]
+        if hasattr(self.clients[0], "test_accuracy") and all(hasattr(c, "test_accuracy") for c in self.clients):
+            sorted_clients = sorted(self.clients, key=lambda c: c.test_accuracy, reverse=True)
+            top_k = self.num_join_clients // 2
+            selected_clients = sorted_clients[:top_k]
+            remaining_clients = [c for c in self.clients if c not in selected_clients]
+            selected_clients += list(np.random.choice(remaining_clients, self.num_join_clients - top_k, replace=False))
         else:
-            self.current_num_join_clients = self.num_join_clients
-        selected_clients = list(np.random.choice(self.clients, self.current_num_join_clients, replace=False))
+            selected_clients = list(np.random.choice(self.clients, self.num_join_clients, replace=False))
 
         return selected_clients
+
 
     def send_models(self):
         assert (len(self.clients) > 0)
@@ -246,7 +273,7 @@ class Server(object):
             loss.append(train_loss)
 
         print("Averaged Train Loss: {:.4f}".format(train_loss))
-        print("Averaged Test Accuracy: {:.4f}".format(test_acc))
+        print("Precisão média do teste(Accuracy): {:.4f}".format(test_acc))
         print("Averaged Test AUC: {:.4f}".format(test_auc))
         # self.print_(test_acc, train_acc, train_loss)
         print("Std Test Accuracy: {:.4f}".format(np.std(accs)))
