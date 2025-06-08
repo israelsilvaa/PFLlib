@@ -12,8 +12,8 @@ def average_data(algorithm="", dataset="", goal="", times=10):
 
     # print("std for best accuracy:", np.std(max_accuracy))
     # print("mean for best accuracy:", np.mean(max_accuracy))
-    print("Desvio padrão da melhor acurácia📉: {:.4f} ({:.0f}%)".format(np.std(max_accuracy), np.std(max_accuracy)*100))
-    print("Média da melhor acurácia📊: {:.4f} ({:.0f}%)".format(np.mean(max_accuracy), np.mean(max_accuracy)*100))
+    print("Desvio padrão da melhor acurácia📉: ", np.std(max_accuracy))
+    print("Média da melhor acurácia📊", np.mean(max_accuracy))
 
 
 

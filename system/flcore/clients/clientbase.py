@@ -51,6 +51,7 @@ class Client(object):
         )
         self.learning_rate_decay = args.learning_rate_decay
         self.test_accuracy = 0.0
+        self.selection_count = 0
 
 
     def load_train_data(self, batch_size=None):

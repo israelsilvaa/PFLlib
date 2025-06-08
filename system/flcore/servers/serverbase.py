@@ -101,74 +101,75 @@ class Server(object):
     #     # Verifica se o modo aleatório com variação na quantidade de clientes está ativado
     #     if self.random_join_ratio:
     #         # Escolhe aleatoriamente um número de clientes entre 'num_join_clients' e o total de clientes
-    #         self.current_num_join_clients = np.random.choice(
-    #             range(self.num_join_clients, self.num_clients + 1), 
-    #             1, 
-    #             replace=False
-    #         )[0]
+    #         self.current_num_join_clients = np.random.choice(range(self.num_join_clients, self.num_clients+1), 1, replace=False)[0]
     #     else:
     #         # Usa o número fixo de clientes para participar da rodada
     #         self.current_num_join_clients = self.num_join_clients
 
     #     # Seleciona 'current_num_join_clients' de forma totalmente aleatória entre todos os clientes disponíveis
-    #     selected_clients = list(
-    #         np.random.choice(self.clients, self.current_num_join_clients, replace=False)
-    #     )
+    #     selected_clients = list(np.random.choice(self.clients, self.current_num_join_clients, replace=False))
 
     #     # Retorna a lista de clientes selecionados aleatoriamente
     #     return selected_clients
-
-
-
+    
     # SELECIONA os top-k clientes com melhor desempenho para as próximas rodadas de treino
-    # v1
+    # v1.1
     # def select_clients(self):
-    #     # Verifica se todos os clientes possuem o atributo 'test_accuracy'
-    #     if hasattr(self.clients[0], "test_accuracy") and all(hasattr(c, "test_accuracy") for c in self.clients):
-
-    #         # Ordena os clientes pela acurácia de teste em ordem decrescente
-    #         # Seleciona os 'num_join_clients' com maior acurácia
+    #     # Verificar se ao menos um cliente possui test_accuracy > 0.
+    #     if any(c.test_accuracy > 0 for c in self.clients):
+    #         # Seleciona os clientes com maior acurácia
     #         selected_clients = sorted(
     #             self.clients, 
     #             key=lambda c: c.test_accuracy, 
     #             reverse=True
     #         )[:self.num_join_clients]
-
     #     else:
-    #         # Caso os clientes não tenham acurácia registrada, seleciona aleatoriamente
-    #         selected_clients = list(
-    #             np.random.choice(self.clients, self.num_join_clients, replace=False)
-    #         )
+    #         # Seleciona aleatoriamente se ninguém foi avaliado ainda
+    #         selected_clients = list(np.random.choice(self.clients, self.num_join_clients, replace=False))
 
     #     # Retorna a lista de clientes selecionados (enviesada para os melhores)
     #     return selected_clients
 
 
-    # SELECIONA (top k + alaetorios) clientes para as proximas rodadas de treino
+    # SELECIONA top k clientes + alaetorios para as proximas rodadas de treino
     # v2
     def select_clients(self):
-        if hasattr(self.clients[0], "test_accuracy") and all(hasattr(c, "test_accuracy") for c in self.clients):
-            sorted_clients = sorted(self.clients, key=lambda c: c.test_accuracy, reverse=True)
+        if any(c.test_accuracy > 0 for c in self.clients):
+            # Penaliza clientes que já participaram muito
+            sorted_clients = sorted(self.clients,key=lambda c: c.test_accuracy / (1 + c.selection_count), reverse=True)
+
+            # Divide a seleção: metade top-k, metade aleatória
             top_k = self.num_join_clients // 2
+            random_k = self.num_join_clients - top_k  # garante que a soma feche certinho
 
+            # Seleciona os top-k clientes com melhor desempenho
             top_clients = sorted_clients[:top_k]
-            remaining_clients = [c for c in self.clients if c not in top_clients]
-            random_clients = list(np.random.choice(remaining_clients, self.num_join_clients - top_k, replace=False))
 
+            # Seleciona aleatoriamente random_k clientes que não estão nos top_k
+            remaining_clients = [c for c in self.clients if c not in top_clients]
+            random_clients = list(np.random.choice(remaining_clients, random_k, replace=False))
+
+            # Junta os selecionados
             selected_clients = top_clients + random_clients
-        else:
+            for c in selected_clients:
+                c.selection_count += 1
+
+        else:# Seleção aleatória se nenhum cliente tiver desempenho > 0
             selected_clients = list(np.random.choice(self.clients, self.num_join_clients, replace=False))
             top_clients = []
             random_clients = selected_clients
 
-        # Usa o serviço para exibir os dados
         servico = ServicoSelecaoClientes()
         servico.exibir_resumo_selecao(self.clients, top_clients, random_clients)
 
         return selected_clients
 
+        # conda activate pfllib
+        # cd C:\Users\Israelsilvaa\Documents\GitHub\PFLlib\system
+        # python main.py -data MNIST -m CNN -algo FedAvg -gr 30 -jr 0.2 -nc 20
+        
         # minist 
-        # cd dataset
+        # cd C:\Users\Israelsilvaa\Documents\GitHub\PFLlib\dataset
 
         # python generate_MNIST.py noniid - dir
         # non-iid 50 rodadas p   =0 ok
@@ -177,8 +178,8 @@ class Server(object):
 
         # python generate_MNIST.py iid balance -
         # iid 50 rodadas p       =3 ok
-        # iid 50 rodadas v1      =4 ok
-        # iid 50 rodadas v2      =5 ok
+        # iid 50 rodadas v1      =4 ok 
+        # iid 50 rodadas v2      =5 ok 6
 
 
     def send_models(self):

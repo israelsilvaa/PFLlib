@@ -69,7 +69,7 @@ Base: **MNIST**
 
 
 ```bash
-    $ python main.py -data MNIST -m CNN -algo FedAvg -gr 50 -jr 0.2 -nc 20
+    $ python main.py -data MNIST -m CNN -algo FedAvg -gr 30 -jr 0.2 -nc 20
 ```
 
 para ver o grafico do ultimo treinamento
