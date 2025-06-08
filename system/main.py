@@ -368,13 +368,13 @@ def run(args):
 
         time_list.append(time.time()-start)
 
-    print(f"\nAverage time cost: {round(np.average(time_list), 2)}s.")
+    print(f"\nCusto total de tempo: {round(np.average(time_list), 2)}s.")
     
 
     # Global average
     average_data(dataset=args.dataset, algorithm=args.algorithm, goal=args.goal, times=args.times)
 
-    print("All done!")
+    print("Completo!")
 
     reporter.report()
 

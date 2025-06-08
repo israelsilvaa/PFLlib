@@ -7,7 +7,10 @@ import time
 import random
 from utils.data_utils import read_client_data
 from utils.dlg import DLG
-
+from .service import ServicoSelecaoClientes
+import os
+import re
+import h5py
 
 class Server(object):
     def __init__(self, args, times):
@@ -144,31 +147,38 @@ class Server(object):
     # SELECIONA (top k + alaetorios) clientes para as proximas rodadas de treino
     # v2
     def select_clients(self):
-        # Verifica se todos os clientes possuem o atributo 'test_accuracy'
         if hasattr(self.clients[0], "test_accuracy") and all(hasattr(c, "test_accuracy") for c in self.clients):
-            
-            # Ordena os clientes pela acurácia de teste em ordem decrescente
             sorted_clients = sorted(self.clients, key=lambda c: c.test_accuracy, reverse=True)
-
-            # Define a quantidade de clientes top-k (metade do total desejado)
             top_k = self.num_join_clients // 2
 
-            # Seleciona os top-k clientes com melhor acurácia
-            selected_clients = sorted_clients[:top_k]
+            top_clients = sorted_clients[:top_k]
+            remaining_clients = [c for c in self.clients if c not in top_clients]
+            random_clients = list(np.random.choice(remaining_clients, self.num_join_clients - top_k, replace=False))
 
-            # Cria uma lista com os clientes que sobraram (não estão entre os top-k)
-            remaining_clients = [c for c in self.clients if c not in selected_clients]
-
-            # Seleciona aleatoriamente os clientes restantes para completar o total necessário
-            selected_clients += list(np.random.choice(remaining_clients, self.num_join_clients - top_k, replace=False))
-
+            selected_clients = top_clients + random_clients
         else:
-            # Se não houver informação de acurácia, seleciona todos os clientes de forma aleatória
             selected_clients = list(np.random.choice(self.clients, self.num_join_clients, replace=False))
+            top_clients = []
+            random_clients = selected_clients
 
-        # Retorna a lista final de clientes selecionados
+        # Usa o serviço para exibir os dados
+        servico = ServicoSelecaoClientes()
+        servico.exibir_resumo_selecao(self.clients, top_clients, random_clients)
+
         return selected_clients
 
+        # minist 
+        # cd dataset
+
+        # python generate_MNIST.py noniid - dir
+        # non-iid 50 rodadas p   =0 ok
+        # non-iid 50 rodadas v1  =1 ok
+        # non-iid 50 rodadas v2  =2 ok
+
+        # python generate_MNIST.py iid balance -
+        # iid 50 rodadas p       =3 ok
+        # iid 50 rodadas v1      =4 ok
+        # iid 50 rodadas v2      =5 ok
 
 
     def send_models(self):
@@ -238,21 +248,50 @@ class Server(object):
         model_path = os.path.join(model_path, self.algorithm + "_server" + ".pt")
         return os.path.exists(model_path)
         
+    # def save_results(self):
+    #     algo = self.dataset + "_" + self.algorithm
+    #     result_path = "../results/"
+    #     if not os.path.exists(result_path):
+    #         os.makedirs(result_path)
+
+    #     if (len(self.rs_test_acc)):
+    #         algo = algo + "_" + self.goal + "_" + str(self.times)
+    #         file_path = result_path + "{}.h5".format(algo)
+    #         print("File path: " + file_path)
+
+    #         with h5py.File(file_path, 'w') as hf:
+    #             hf.create_dataset('rs_test_acc', data=self.rs_test_acc)
+    #             hf.create_dataset('rs_test_auc', data=self.rs_test_auc)
+    #             hf.create_dataset('rs_train_loss', data=self.rs_train_loss)
+
     def save_results(self):
-        algo = self.dataset + "_" + self.algorithm
+        algo_prefix = f"{self.dataset}_{self.algorithm}_test"
         result_path = "../results/"
         if not os.path.exists(result_path):
             os.makedirs(result_path)
 
-        if (len(self.rs_test_acc)):
-            algo = algo + "_" + self.goal + "_" + str(self.times)
-            file_path = result_path + "{}.h5".format(algo)
-            print("File path: " + file_path)
+        # Encontrar o maior índice de teste existente
+        existing_files = os.listdir(result_path)
+        pattern = re.compile(rf"{re.escape(algo_prefix)}_(\d+)\.h5$")
+        test_indices = [
+            int(match.group(1))
+            for fname in existing_files
+            if (match := pattern.match(fname))
+        ]
 
+        next_index = max(test_indices) + 1 if test_indices else 0
+        algo = f"{algo_prefix}_{next_index}"
+        file_path = os.path.join(result_path, f"{algo}.h5")
+        
+        print("Diretório do arquivo: " + file_path)
+
+        if len(self.rs_test_acc):
             with h5py.File(file_path, 'w') as hf:
                 hf.create_dataset('rs_test_acc', data=self.rs_test_acc)
                 hf.create_dataset('rs_test_auc', data=self.rs_test_auc)
                 hf.create_dataset('rs_train_loss', data=self.rs_train_loss)
+
+
 
     def save_item(self, item, item_name):
         if not os.path.exists(self.save_folder_name):
@@ -316,12 +355,18 @@ class Server(object):
         else:
             loss.append(train_loss)
 
-        print("Averaged Train Loss: {:.4f}".format(train_loss))
-        print("Precisão média do teste(Accuracy): {:.4f}".format(test_acc))
-        print("Averaged Test AUC: {:.4f}".format(test_auc))
-        # self.print_(test_acc, train_acc, train_loss)
-        print("Std Test Accuracy: {:.4f}".format(np.std(accs)))
-        print("Std Test AUC: {:.4f}".format(np.std(aucs)))
+        # print("Averaged Train Loss🔻: {:.4f}".format(train_loss))
+        # print("Accuracy média do teste🎯: {:.4f}".format(test_acc))
+        # print("Averaged Test AUC: {:.4f}".format(test_auc))
+        # # self.print_(test_acc, train_acc, train_loss)
+        # print("Std Test Accuracy: {:.4f}".format(np.std(accs)))
+        # print("Std Test AUC: {:.4f}".format(np.std(aucs)))
+
+        print("Perda média no treino 🔻: {:.4f}".format(train_loss))
+        print("Acurácia média no teste 🎯: {:.4f} ({:.0f}%)".format(test_acc, test_acc * 100))
+        print("AUC médio no teste: {:.4f} ({:.0f}%)".format(test_auc, test_auc * 100))
+        print("Desvio padrão da acurácia: {:.4f}".format(np.std(accs)))
+        print("Desvio padrão do AUC: {:.4f}".format(np.std(aucs)))
 
     def print_(self, test_acc, test_auc, train_loss):
         print("Average Test Accuracy: {:.4f}".format(test_acc))
