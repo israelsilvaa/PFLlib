@@ -76,3 +76,50 @@ para ver o grafico do ultimo treinamento
 ```bash
     $ python plot_results.py ../results/MNIST_FedAvg_test_0.h5
 ```
+
+
+## Sugestões do professor (PFLlib – Aprendizado Federado)
+
+1. **Considerar o tamanho da base de dados de cada cliente**  
+   - Exemplo:  
+     - Cliente X possui 100 imagens → peso = `100 / 100 = 1.0`  
+     - Cliente Y possui 50 imagens → peso = `50 / 100 = 0.5`  
+   - Esse peso deve ser levado em conta na **seleção dos clientes** para teste, combinando:
+     - `client.acuracia`
+     - `client.importanciaDaBaseDeDados` (proporcional ao tamanho da base local)
+
+2. **Suavizar o gráfico de desempenho**
+   - Estratégias sugeridas:
+     - Aumentar o número de rodadas de treinamento
+     - Melhorar o aprendizado (ajustar taxa de aprendizado, regularização, etc.)
+
+
+
+## Resumo: Melhoria na Seleção de Clientes com Base de Dados no Aprendizado Federado
+
+### Objetivo
+Melhorar a seleção dos clientes no aprendizado federado, levando em consideração **dois fatores** principais:
+1. **Acurácia de Teste** (`c.test_accuracy`)
+2. **Importância da Base de Dados Local** (`c.data_importance`)
+
+### O que é feito:
+- **Acurácia Ajustada**: A acurácia de cada cliente é dividida pelo número de vezes que ele foi selecionado, para evitar que clientes que já participaram muitas vezes sejam escolhidos novamente.
+  
+- **Importância da Base de Dados**: A importância da base de dados de um cliente é calculada como a fração de seus dados em relação ao total de dados de todos os clientes.
+
+### Como calcular:
+1. **Acurácia ajustada**:
+   ```python
+       acuracia_ajustada = c.test_accuracy / (1 + c.selection_count)
+   ```
+2. Importância da base de dados:
+    ```python
+    c.data_importance = c.num_samples / total_num_samples
+    ```
+   
+Média ponderada (usando pesos iguais de 50%):
+    ```python
+    score = (0.5 * acuracia_ajustada) + (0.5 * c.data_importance)
+    ```
+
+
