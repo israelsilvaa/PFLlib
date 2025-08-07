@@ -123,3 +123,60 @@ Média ponderada (usando pesos iguais de 50%):
     ```
 
 
+
+info aqui::::
+import json
+
+# Caminho do arquivo JSON
+config_path = "/home/kurumi/Downloads/PFLlib-israel-trab2/dataset/MNIST/config.json"
+
+# Função para carregar o arquivo JSON
+def load_config(config_path):
+    with open(config_path, "r") as file:
+        return json.load(file)
+
+# Função para calcular a pontuação de cada cliente com base na importância dos dados
+def calculate_data_importance(config):
+    # Número total de amostras de todos os clientes
+    total_num_samples = sum(sum(count for _, count in client_data) for client_data in config['Size of samples for labels in clients'])
+    
+    print("\n*** Cálculo das Pontuações de Importância dos Dados dos Clientes ***\n")
+    
+    # Lista para armazenar as pontuações
+    scores = []
+    
+    # Para cada cliente, calcular a importância da base de dados
+    for idx, client_data in enumerate(config['Size of samples for labels in clients']):
+        # Número de amostras para esse cliente
+        num_samples = sum(count for _, count in client_data)
+        
+        # Cálculo da importância da base de dados
+        data_importance = num_samples / total_num_samples
+        
+        # Armazenando o resultado
+        scores.append({
+            "cliente": idx,
+            "num_amostras": num_samples,
+            "importancia_dados": data_importance
+        })
+        
+        # Exibindo os resultados para cada cliente
+        print(f"Cliente {idx}:")
+        print(f"  Número de amostras: {num_samples}")
+        print(f"  Importância da base de dados: {data_importance:.4f}")
+        print("-" * 40)
+    
+    # Exibindo as pontuações finais ordenadas por importância
+    print("\n*** Ranking de Clientes por Importância dos Dados ***")
+    sorted_scores = sorted(scores, key=lambda x: x['importancia_dados'], reverse=True)
+    
+    for rank, score in enumerate(sorted_scores, 1):
+        print(f"{rank}. Cliente {score['cliente']} - Importância dos Dados: {score['importancia_dados']:.4f}")
+
+    print("\n*** Fim do Cálculo das Pontuações ***")
+
+# Carregar o arquivo JSON
+config = load_config(config_path)
+
+# Calcular a importância dos dados dos clientes
+calculate_data_importance(config)
