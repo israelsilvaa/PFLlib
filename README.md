@@ -72,9 +72,14 @@ Base: **MNIST**
     $ python main.py -data MNIST -m CNN -algo FedAvg -gr 30 -jr 0.2 -nc 20
 ```
 
-para ver o grafico do ultimo treinamento
+para ver o grafico do ultimo treinamento(esteja em /system)
 ```bash
     $ python plot_results.py ../results/MNIST_FedAvg_test_0.h5
+```
+
+para comparar 3 treinamentos(esteja em /system)
+```bash
+    $ python plot_results2.py ../results/MNIST_FedAvg_test_0.h5 ../results/MNIST_FedAvg_test_1.h5 ../results/MNIST_FedAvg_test_2.h5
 ```
 
 
