@@ -142,7 +142,7 @@ class Server(object):
             top_k = self.num_join_clients // 2
             random_k = self.num_join_clients - top_k  # garante que a soma feche certinho
 
-            # Seleciona os top-k clientes com melhor desempenho
+            # Seleciona os top-k clientes com melhor desempen''ho
             top_clients = sorted_clients[:top_k]
 
             # Seleciona aleatoriamente random_k clientes que não estão nos top_k
@@ -163,6 +163,51 @@ class Server(object):
         servico.exibir_resumo_selecao(self.clients, top_clients, random_clients)
 
         return selected_clients
+    
+    def select_clients3(self):
+        from utils.dbinfo import get_dataset_scores
+
+        # Caminho fixo ou vindo da config
+        config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/MNIST/config.json"
+        dataset_scores = get_dataset_scores(config_path)
+
+        if any(c.test_accuracy > 0 for c in self.clients):
+            # Calcula score ponderado para cada cliente
+            clientes_com_score = []
+            for i, c in enumerate(self.clients):
+                media_ponderada = (0.7 * c.test_accuracy) + (0.3 * dataset_scores[i])
+                # Penaliza por participações excessivas
+                media_ponderada /= (1 + c.selection_count)
+                clientes_com_score.append((c, media_ponderada))
+
+            # Ordena por score
+            sorted_clients = sorted(clientes_com_score, key=lambda x: x[1], reverse=True)
+
+            # Divide a seleção: metade top-k, metade aleatória
+            top_k = self.num_join_clients // 2
+            random_k = self.num_join_clients - top_k
+
+            top_clients = [c for c, _ in sorted_clients[:top_k]]
+            remaining_clients = [c for c, _ in sorted_clients if c not in top_clients]
+
+            random_clients = list(np.random.choice(remaining_clients, random_k, replace=False))
+
+            selected_clients = top_clients + random_clients
+            for c in selected_clients:
+                c.selection_count += 1
+
+        else:
+            # Seleção aleatória se nenhum cliente tiver desempenho > 0
+            selected_clients = list(np.random.choice(self.clients, self.num_join_clients, replace=False))
+            top_clients = []
+            random_clients = selected_clients
+
+        # Exibe resumo
+        servico = ServicoSelecaoClientes()
+        servico.exibir_resumo_selecao(self.clients, top_clients, random_clients)
+
+        return selected_clients
+
 
         # conda activate pfllib
         # cd C:\Users\Israelsilvaa\Documents\GitHub\PFLlib\system
