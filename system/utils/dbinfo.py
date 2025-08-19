@@ -4,7 +4,7 @@ def load_config(config_path):
     with open(config_path, "r") as file:
         return json.load(file)
 
-def get_dataset_scores(config_path, alpha=0.7, beta=0.3):
+def get_dataset_scores(config_path, alpha=0.5, beta=0.5):
     """
     Lê o config.json e retorna uma lista com dataset_score de cada cliente.
     """

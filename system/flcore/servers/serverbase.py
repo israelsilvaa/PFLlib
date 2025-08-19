@@ -97,20 +97,20 @@ class Server(object):
     # Método original do PFLib
     # Seleciona clientes de forma totalmente aleatória, com possibilidade de variar a quantidade
     # Default
-    # def select_clients(self):
-    #     # Verifica se o modo aleatório com variação na quantidade de clientes está ativado
-    #     if self.random_join_ratio:
-    #         # Escolhe aleatoriamente um número de clientes entre 'num_join_clients' e o total de clientes
-    #         self.current_num_join_clients = np.random.choice(range(self.num_join_clients, self.num_clients+1), 1, replace=False)[0]
-    #     else:
-    #         # Usa o número fixo de clientes para participar da rodada
-    #         self.current_num_join_clients = self.num_join_clients
+    def select_clients1(self):
+        # Verifica se o modo aleatório com variação na quantidade de clientes está ativado
+        if self.random_join_ratio:
+            # Escolhe aleatoriamente um número de clientes entre 'num_join_clients' e o total de clientes
+            self.current_num_join_clients = np.random.choice(range(self.num_join_clients, self.num_clients+1), 1, replace=False)[0]
+        else:
+            # Usa o número fixo de clientes para participar da rodada
+            self.current_num_join_clients = self.num_join_clients
 
-    #     # Seleciona 'current_num_join_clients' de forma totalmente aleatória entre todos os clientes disponíveis
-    #     selected_clients = list(np.random.choice(self.clients, self.current_num_join_clients, replace=False))
+        # Seleciona 'current_num_join_clients' de forma totalmente aleatória entre todos os clientes disponíveis
+        selected_clients = list(np.random.choice(self.clients, self.current_num_join_clients, replace=False))
 
-    #     # Retorna a lista de clientes selecionados aleatoriamente
-    #     return selected_clients
+        # Retorna a lista de clientes selecionados aleatoriamente
+        return selected_clients
     
     # SELECIONA os top-k clientes com melhor desempenho para as próximas rodadas de treino
     # v1.1
@@ -133,7 +133,7 @@ class Server(object):
 
     # SELECIONA top k clientes + alaetorios para as proximas rodadas de treino
     # v2
-    def select_clients(self):
+    def select_clients2(self):
         if any(c.test_accuracy > 0 for c in self.clients):
             # Penaliza clientes que já participaram muito
             sorted_clients = sorted(self.clients,key=lambda c: c.test_accuracy / (1 + c.selection_count), reverse=True)
@@ -164,7 +164,8 @@ class Server(object):
 
         return selected_clients
     
-    def select_clients3(self):
+    # v3
+    def select_clients(self):
         from utils.dbinfo import get_dataset_scores
 
         # Caminho fixo ou vindo da config
@@ -175,16 +176,15 @@ class Server(object):
             # Calcula score ponderado para cada cliente
             clientes_com_score = []
             for i, c in enumerate(self.clients):
-                media_ponderada = (0.7 * c.test_accuracy) + (0.3 * dataset_scores[i])
+                media_ponderada = (0.5 * (c.test_accuracy/(1 + c.selection_count)) ) + (0.5 * dataset_scores[i])
                 # Penaliza por participações excessivas
-                media_ponderada /= (1 + c.selection_count)
                 clientes_com_score.append((c, media_ponderada))
 
             # Ordena por score
             sorted_clients = sorted(clientes_com_score, key=lambda x: x[1], reverse=True)
 
             # Divide a seleção: metade top-k, metade aleatória
-            top_k = self.num_join_clients // 2
+            top_k = self.num_join_clients
             random_k = self.num_join_clients - top_k
 
             top_clients = [c for c, _ in sorted_clients[:top_k]]
@@ -192,7 +192,7 @@ class Server(object):
 
             random_clients = list(np.random.choice(remaining_clients, random_k, replace=False))
 
-            selected_clients = top_clients + random_clients
+            selected_clients = top_clients
             for c in selected_clients:
                 c.selection_count += 1
 
@@ -207,6 +207,7 @@ class Server(object):
         servico.exibir_resumo_selecao(self.clients, top_clients, random_clients)
 
         return selected_clients
+
 
 
         # conda activate pfllib

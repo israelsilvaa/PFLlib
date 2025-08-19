@@ -8,8 +8,8 @@ import torchvision.transforms as transforms
 from utils.dataset_utils import check, separate_data, split_data, save_file
 
 
-random.seed(1)
-np.random.seed(1)
+random.seed(2)
+np.random.seed(2)
 num_clients = 20
 dir_path = "MNIST/"
 
