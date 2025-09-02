@@ -65,6 +65,7 @@ class Server(object):
         self.new_clients = []
         self.eval_new_clients = False
         self.fine_tuning_epoch_new = args.fine_tuning_epoch_new
+        self.current_round = 0 
 
     def set_clients(self, clientObj):
         for i, train_slow, send_slow in zip(range(self.num_clients), self.train_slow_clients, self.send_slow_clients):
@@ -98,43 +99,19 @@ class Server(object):
     # Seleciona clientes de forma totalmente aleatória, com possibilidade de variar a quantidade
     # Default
     def select_clients1(self):
-        # Verifica se o modo aleatório com variação na quantidade de clientes está ativado
         if self.random_join_ratio:
-            # Escolhe aleatoriamente um número de clientes entre 'num_join_clients' e o total de clientes
             self.current_num_join_clients = np.random.choice(range(self.num_join_clients, self.num_clients+1), 1, replace=False)[0]
         else:
-            # Usa o número fixo de clientes para participar da rodada
             self.current_num_join_clients = self.num_join_clients
-
-        # Seleciona 'current_num_join_clients' de forma totalmente aleatória entre todos os clientes disponíveis
         selected_clients = list(np.random.choice(self.clients, self.current_num_join_clients, replace=False))
 
-        # Retorna a lista de clientes selecionados aleatoriamente
         return selected_clients
     
-    # SELECIONA os top-k clientes com melhor desempenho para as próximas rodadas de treino
-    # v1.1
-    # def select_clients(self):
-    #     # Verificar se ao menos um cliente possui test_accuracy > 0.
-    #     if any(c.test_accuracy > 0 for c in self.clients):
-    #         # Seleciona os clientes com maior acurácia
-    #         selected_clients = sorted(
-    #             self.clients, 
-    #             key=lambda c: c.test_accuracy, 
-    #             reverse=True
-    #         )[:self.num_join_clients]
-    #     else:
-    #         # Seleciona aleatoriamente se ninguém foi avaliado ainda
-    #         selected_clients = list(np.random.choice(self.clients, self.num_join_clients, replace=False))
-
-    #     # Retorna a lista de clientes selecionados (enviesada para os melhores)
-    #     return selected_clients
-
-
     # SELECIONA top k clientes + alaetorios para as proximas rodadas de treino
     # v2
     def select_clients2(self):
-        if any(c.test_accuracy > 0 for c in self.clients):
+        medias_ponderadas = {} 
+        if all(c.test_accuracy > 0 for c in self.clients):
             # Penaliza clientes que já participaram muito
             sorted_clients = sorted(self.clients,key=lambda c: c.test_accuracy / (1 + c.selection_count), reverse=True)
 
@@ -149,6 +126,9 @@ class Server(object):
             remaining_clients = [c for c in self.clients if c not in top_clients]
             random_clients = list(np.random.choice(remaining_clients, random_k, replace=False))
 
+            for i, c in enumerate(self.clients):
+                medias_ponderadas[c.id] = c.penalized_accuracy  # Armazena para passar ao serviço
+
             # Junta os selecionados
             selected_clients = top_clients + random_clients
             for c in selected_clients:
@@ -158,41 +138,47 @@ class Server(object):
             selected_clients = list(np.random.choice(self.clients, self.num_join_clients, replace=False))
             top_clients = []
             random_clients = selected_clients
+            medias_ponderadas = {c.id: 0.0 for c in self.clients}
+
 
         servico = ServicoSelecaoClientes()
-        servico.exibir_resumo_selecao(self.clients, top_clients, random_clients)
+        servico.exibir_resumo_selecao(self.clients, top_clients, random_clients, medias_ponderadas)
 
         return selected_clients
-    
+  
     # v3
-    def select_clients(self):
+    def select_clients3(self):
         from utils.dbinfo import get_dataset_scores
 
-        # Caminho fixo ou vindo da config
+        # config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/EMNIST/config.json"
         config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/MNIST/config.json"
         dataset_scores = get_dataset_scores(config_path)
 
-        if any(c.test_accuracy > 0 for c in self.clients):
+        if all(c.test_accuracy > 0 for c in self.clients):
             # Calcula score ponderado para cada cliente
             clientes_com_score = []
             for i, c in enumerate(self.clients):
-                media_ponderada = (0.5 * (c.test_accuracy/(1 + c.selection_count)) ) + (0.5 * dataset_scores[i])
-                # Penaliza por participações excessivas
+
+                media_ponderada =  (0.5*(c.test_accuracy/(1+c.selection_count))) + (0.5 * dataset_scores[i])                
                 clientes_com_score.append((c, media_ponderada))
 
             # Ordena por score
-            sorted_clients = sorted(clientes_com_score, key=lambda x: x[1], reverse=True)
+            # sorted_clients = sorted(clientes_com_score, key=lambda x: x[1], reverse=True)
+            sorted_clients = sorted(clientes_com_score, key=lambda x: x[1], reverse=False) #aqui eu pego com medias menores
 
             # Divide a seleção: metade top-k, metade aleatória
-            top_k = self.num_join_clients
-            random_k = self.num_join_clients - top_k
+            top_k = self.num_join_clients//2
+            random_k = self.num_join_clients - top_k 
 
             top_clients = [c for c, _ in sorted_clients[:top_k]]
-            remaining_clients = [c for c, _ in sorted_clients if c not in top_clients]
+            random_clients = []
 
+            # Seleciona aleatoriamente random_k clientes que não estão nos top_k
+            remaining_clients = [c for c in self.clients if c not in top_clients]
             random_clients = list(np.random.choice(remaining_clients, random_k, replace=False))
 
-            selected_clients = top_clients
+
+            selected_clients = top_clients + random_clients
             for c in selected_clients:
                 c.selection_count += 1
 
@@ -207,27 +193,67 @@ class Server(object):
         servico.exibir_resumo_selecao(self.clients, top_clients, random_clients)
 
         return selected_clients
+    
+    #v4
+    def select_clients(self):
+        """Método de seleção de clientes com penalização automática"""
+        from utils.dbinfo import get_dataset_scores
 
+        # Reset das flags de treinamento de todos os clientes
+        for client in self.clients:
+            client.reset_training_flag()
 
+        config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/MNIST/config.json"
+        # config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/Cifar100/config.json"
+        dataset_scores = get_dataset_scores(config_path)
 
-        # conda activate pfllib
-        # cd C:\Users\Israelsilvaa\Documents\GitHub\PFLlib\system
-        # python main.py -data MNIST -m CNN -algo FedAvg -gr 30 -jr 0.2 -nc 20
-        
-        # minist 
-        # cd C:\Users\Israelsilvaa\Documents\GitHub\PFLlib\dataset
+        # Verifica se há clientes com acurácia > 0
+        if all(c.raw_test_accuracy > 0 for c in self.clients):
+            # Calcula score ponderado para cada cliente
+            clientes_com_score = []
+            medias_ponderadas = {}  # Dicionário para armazenar as médias por cliente
+            
+            for i, c in enumerate(self.clients):
+                # media_ponderada = c.penalized_accuracy 
+                media_ponderada =  ((0.5*c.penalized_accuracy) + (0.5 * dataset_scores[i])) / (1+c.selection_count)                
+                clientes_com_score.append((c, media_ponderada))
+                medias_ponderadas[c.id] = media_ponderada  # Armazena para passar ao serviço
 
-        # python generate_MNIST.py noniid - dir
-        # non-iid 50 rodadas p   =0 ok
-        # non-iid 50 rodadas v1  =1 ok
-        # non-iid 50 rodadas v2  =2 ok
+            sorted_clients = sorted(clientes_com_score, key=lambda x: x[1], reverse=True)
 
-        # python generate_MNIST.py iid balance -
-        # iid 50 rodadas p       =3 ok
-        # iid 50 rodadas v1      =4 ok 
-        # iid 50 rodadas v2      =5 ok 6
+            # Divide a seleção: metade top-k, metade aleatória
+            top_k = self.num_join_clients
+            random_k = self.num_join_clients - top_k 
 
+            top_clients = [c for c, _ in sorted_clients[:top_k]]
+            
+            # Seleciona aleatoriamente random_k clientes que não estão nos top_k
+            remaining_clients = [c for c in self.clients if c not in top_clients]
+            random_clients = list(np.random.choice(remaining_clients, random_k, replace=False))
 
+            selected_clients = top_clients
+            
+            # Marca os clientes selecionados (contador é incrementado automaticamente)
+            for c in selected_clients:
+                c.mark_as_trained(self.current_round)
+
+        else:
+            # Seleção aleatória se nenhum cliente tiver desempenho > 0
+            selected_clients = list(np.random.choice(self.clients, self.num_join_clients, replace=False))
+            for c in selected_clients:
+                c.mark_as_trained(self.current_round)
+            top_clients = []
+            random_clients = selected_clients
+            # Medias zeradas para primeira rodada
+            medias_ponderadas = {c.id: 0.0 for c in self.clients}
+
+        # Exibe resumo com as médias ponderadas
+        from .service import ServicoSelecaoClientes
+        servico = ServicoSelecaoClientes()
+        servico.exibir_resumo_selecao(self.clients, top_clients, random_clients, medias_ponderadas)
+
+        return selected_clients
+  
     def send_models(self):
         assert (len(self.clients) > 0)
 

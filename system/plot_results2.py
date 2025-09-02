@@ -3,21 +3,25 @@ import h5py
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import os
+import numpy as np
 
-if len(sys.argv) != 4:
-    print("Uso: python plot_results2.py <id_1> <id_2> <id_3>")
+# Checa número de argumentos
+if len(sys.argv) < 2 or len(sys.argv) > 5:
+    print("Uso: python plot_results2.py <id_1> [id_2] [id_3] [id_4]")
     sys.exit(1)
 
 # Diretório base dos arquivos
 base_dir = "../results"
 
-# Labels fixos na ordem recebida
-labels = ["Padrão", "Seleção v2", "Seleção v3"]
+# Labels fixos
+labels = ["Padrão", "v2", "v3", "v4"]
 
-# Monta lista de caminhos e mapeia com labels
+# Monta lista de caminhos e mapeia com labels (até o número de argumentos passados)
 file_label_map = {}
 for i, file_id in enumerate(sys.argv[1:]):
     filename = f"MNIST_FedAvg_test_{file_id}.h5"
+    # filename = f"EMNIST_FedAvg_test_{file_id}.h5"
+    # filename = f"Cifar100_FedAvg_test_{file_id}.h5"
     file_path = os.path.join(base_dir, filename)
     file_label_map[file_path] = labels[i]
 
@@ -42,7 +46,15 @@ for path, label in file_label_map.items():
             "loss": train_loss[:]
         }
 
-# Plots
+# -------- Cálculo das médias finais --------
+n_tail = 50
+print("\n=== Médias das últimas 50 rodadas ===")
+for label, d in data.items():
+    acc_mean = np.mean(d["acc"][-n_tail:])
+    loss_mean = np.mean(d["loss"][-n_tail:])
+    print(f"{label:8s} -> Acurácia média = {acc_mean:.4f}, Perda média = {loss_mean:.4f}")
+
+# -------- Plots --------
 plt.figure(figsize=(14, 5))
 
 # Acurácia

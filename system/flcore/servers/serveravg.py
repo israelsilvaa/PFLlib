@@ -19,34 +19,34 @@ class FedAvg(Server):
         self.Budget = []
 
 
+     # CORREÇÃO 7: Atualizar o método de treinamento
     def train(self):
+        """Método de treinamento principal corrigido"""
         for i in range(self.global_rounds+1):
+            self.current_round = i  # Atualiza a rodada atual
             s_t = time.time()
+            
             self.selected_clients = self.select_clients()
             self.send_models()
 
-            if i%self.eval_gap == 0:
+            if i % self.eval_gap == 0:
                 print(f"\n-------------Rodada número: {i}-------------")
                 print("\nAvaliação do modelo global")
                 self.evaluate()
 
+            # Treina apenas os clientes selecionados
             for client in self.selected_clients:
                 client.train()
-
-            # threads = [Thread(target=client.train)
-            #            for client in self.selected_clients]
-            # [t.start() for t in threads]
-            # [t.join() for t in threads]
+                # CORREÇÃO 8: Calcula acurácia local após o treinamento
+                client.calculate_local_accuracy()
 
             self.receive_models()
-            if self.dlg_eval and i%self.dlg_gap == 0:
+            if self.dlg_eval and i % self.dlg_gap == 0:
                 self.call_dlg(i)
             self.aggregate_parameters()
 
             self.Budget.append(time.time() - s_t)
-            # print('-'*25, 'custo de tempo', '-'*25, self.Budget[-1])
             print('-'*25, 'custo de tempo ⏱️', '-'*25, f"{round(self.Budget[-1])}s")
-
 
             if self.auto_break and self.check_done(acc_lss=[self.rs_test_acc], top_cnt=self.top_cnt):
                 break

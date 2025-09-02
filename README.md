@@ -70,6 +70,14 @@ Base: **MNIST**
 
 ```bash
     $ python main.py -data MNIST -m CNN -algo FedAvg -gr 30 -jr 0.2 -nc 20
+    $ python main.py -data Cifar100 -m CNN -algo FedAvg -gr 300 -jr 0.2 -ncl 100
+```
+
+para criar distribuição MNIST, EMNIST, Cifar100 
+```bash
+    $ python generate_EMNIST.py noniid - dir
+    $ python generate_MNIST.py noniid - dir
+    $ python generate_Cifar100.py noniid - dir
 ```
 
 para ver o grafico do ultimo treinamento(esteja em /system)
@@ -77,10 +85,10 @@ para ver o grafico do ultimo treinamento(esteja em /system)
     $ python plot_results.py ../results/MNIST_FedAvg_test_0.h5
 ```
 
-para comparar 3 treinamentos(esteja em /system)
+para comparar 1 a 4 treinamentos(esteja em /system)
 ```bash
-    $ python plot_results2.py ../results/MNIST_FedAvg_test_0.h5 ../results/MNIST_FedAvg_test_1.h5 ../results/MNIST_FedAvg_test_2.h5
-```bash
-    $ python plot_results2.py ../results/MNIST_FedAvg_test_9.h5 ../results/MNIST_FedAvg_test_8.h5 ../results/MNIST_FedAvg_test_7.h5
+    $ python plot_results2.py 0 1 2 4
 ```
+
+
 
