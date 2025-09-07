@@ -5,6 +5,14 @@ import matplotlib.ticker as mtick
 import os
 import numpy as np
 
+# -------- Configuração de suavização --------
+smooth = True       # <<<<<< chave: coloque False se não quiser suavizar
+window_size = 1    # tamanho da janela da média móvel
+
+def moving_average(x, w):
+    """Aplica média móvel em um array"""
+    return np.convolve(x, np.ones(w), 'valid') / w
+
 # Checa número de argumentos
 if len(sys.argv) < 2 or len(sys.argv) > 5:
     print("Uso: python plot_results2.py <id_1> [id_2] [id_3] [id_4]")
@@ -19,9 +27,13 @@ labels = ["Padrão", "v2", "v3", "v4"]
 # Monta lista de caminhos e mapeia com labels (até o número de argumentos passados)
 file_label_map = {}
 for i, file_id in enumerate(sys.argv[1:]):
+    # Mantive todos os datasets como no seu código
+    filename = f"Cifar10_FedAvg_test_{file_id}.h5"
+    filename = f"EMNIST_FedAvg_test_{file_id}.h5"
+    filename = f"FashionMNIST_FedAvg_test_{file_id}.h5"
+    filename = f"Cifar100_FedAvg_test_{file_id}.h5"
+    filename = f"Cifar10_FedAvg_test_{file_id}.h5"
     filename = f"MNIST_FedAvg_test_{file_id}.h5"
-    # filename = f"EMNIST_FedAvg_test_{file_id}.h5"
-    # filename = f"Cifar100_FedAvg_test_{file_id}.h5"
     file_path = os.path.join(base_dir, filename)
     file_label_map[file_path] = labels[i]
 
@@ -48,11 +60,28 @@ for path, label in file_label_map.items():
 
 # -------- Cálculo das médias finais --------
 n_tail = 50
-print("\n=== Médias das últimas 50 rodadas ===")
+print(f"\n=== Médias das últimas {n_tail} rodadas ===")
 for label, d in data.items():
     acc_mean = np.mean(d["acc"][-n_tail:])
     loss_mean = np.mean(d["loss"][-n_tail:])
     print(f"{label:8s} -> Acurácia média = {acc_mean:.4f}, Perda média = {loss_mean:.4f}")
+
+# -------- Análises adicionais --------
+print("\n=== Análises adicionais ===")
+
+# 1. Quem convergiu mais nas primeiras 50 rodadas
+early_rounds = 50
+for label, d in data.items():
+    acc_mean_early = np.mean(d["acc"][:early_rounds])
+    print(f"{label:8s} -> Média de acurácia nas primeiras {early_rounds} rodadas = {acc_mean_early:.4f}")
+print("\n")
+
+# 2. Quem é mais estável (desvio padrão nas últimas N rodadas)
+for label, d in data.items():
+    acc_std = np.std(d["acc"][-n_tail:])
+    print(f"{label:8s} -> Desvio padrão (estabilidade) = {acc_std:.4f}")
+
+
 
 # -------- Plots --------
 plt.figure(figsize=(14, 5))
@@ -60,7 +89,10 @@ plt.figure(figsize=(14, 5))
 # Acurácia
 plt.subplot(1, 2, 1)
 for label, d in data.items():
-    plt.plot(d["acc"], label=label)
+    acc = d["acc"]
+    if smooth:
+        acc = moving_average(acc, window_size)
+    plt.plot(acc, label=label)
 plt.xlabel('Rodada')
 plt.ylabel('Acurácia')
 plt.title('Comparação de Acurácia por Rodada')
@@ -71,7 +103,10 @@ plt.legend()
 # Perda
 plt.subplot(1, 2, 2)
 for label, d in data.items():
-    plt.plot(d["loss"], label=label)
+    loss = d["loss"]
+    if smooth:
+        loss = moving_average(loss, window_size)
+    plt.plot(loss, label=label)
 plt.xlabel('Rodada')
 plt.ylabel('Perda')
 plt.title('Comparação de Perda por Rodada')

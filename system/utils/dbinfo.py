@@ -45,10 +45,15 @@ def get_dataset_scores(config_path):
 
 # Teste rápido local
 if __name__ == "__main__":
-    # config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/Cifar100/config.json"
+    # config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/FEMNIST/config.json"
     # config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/EMNIST/config.json"
-    config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/MNIST/config.json"
+    # config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/Cifar100/config.json"
 
+
+
+    config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/FashionMNIST/config.json"
+    config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/MNIST/config.json"
+    config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/Cifar10/config.json"
     print("== Scores ==")
     print(get_dataset_scores(config_path))
 

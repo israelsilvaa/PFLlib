@@ -69,7 +69,9 @@ Base: **MNIST**
 
 
 ```bash
-    $ python main.py -data MNIST -m CNN -algo FedAvg -gr 30 -jr 0.2 -nc 20
+    $ python main.py -data MNIST -m CNN -algo FedAvg -gr 300 -jr 0.2 -nc 100
+    $ python main.py -data EMNIST -m CNN -algo FedAvg -gr 300 -jr 0.2 -nc 100
+    $ python main.py -data Cifar10 -m CNN -algo FedAvg -gr 300 -jr 0.2 -nc 100
     $ python main.py -data Cifar100 -m CNN -algo FedAvg -gr 300 -jr 0.2 -ncl 100
 ```
 

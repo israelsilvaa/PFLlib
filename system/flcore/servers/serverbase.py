@@ -202,9 +202,13 @@ class Server(object):
         # Reset das flags de treinamento de todos os clientes
         for client in self.clients:
             client.reset_training_flag()
+        config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/EMNIST/config.json"
+        config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/Cifar100/config.json"
+        config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/FEMNIST/config.json"
 
+        config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/FashionMNIST/config.json"
         config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/MNIST/config.json"
-        # config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/Cifar100/config.json"
+        config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/Cifar10/config.json"
         dataset_scores = get_dataset_scores(config_path)
 
         # Verifica se há clientes com acurácia > 0
@@ -219,7 +223,7 @@ class Server(object):
                 clientes_com_score.append((c, media_ponderada))
                 medias_ponderadas[c.id] = media_ponderada  # Armazena para passar ao serviço
 
-            sorted_clients = sorted(clientes_com_score, key=lambda x: x[1], reverse=True)
+            sorted_clients = sorted(clientes_com_score, key=lambda x: x[1], reverse=True) #maires medias
 
             # Divide a seleção: metade top-k, metade aleatória
             top_k = self.num_join_clients
