@@ -9,23 +9,25 @@ def get_dataset_scores(config_path):
     config = load_config(config_path)
     clients_data = config['Size of samples for labels in clients']
 
-    # total samples máximo para normalização
+    # pega o maior número total de amostras de um cliente (referência para normalização)
     max_num_samples = max(sum(count for _, count in c) for c in clients_data)
 
-    # total por classe no dataset global
+    # soma global de amostras por classe (todos clientes juntos)
     total_per_class = {}
     for client_data in clients_data:
         for label, count in client_data:
             total_per_class[label] = total_per_class.get(label, 0) + count
 
-    # calcular métricas base
+    # calcula métricas individuais por cliente
     base_metrics = []
     for idx, client_data in enumerate(clients_data):
+        # total de amostras do cliente
         num_samples = sum(count for _, count in client_data)
+        # score de tamanho: proporcional ao maior cliente
         size_score = num_samples / max_num_samples if max_num_samples > 0 else 0
 
         if client_data and num_samples > 0:
-            # versão ponderada: cada classe pesa proporcionalmente à quantidade dela no cliente
+            # score de "unicidade": quanto das classes desse cliente são exclusivas
             uniqueness_score = sum(
                 (count / total_per_class[label]) * (count / num_samples)
                 for label, count in client_data
@@ -36,8 +38,7 @@ def get_dataset_scores(config_path):
         base_metrics.append((size_score, uniqueness_score))
 
     scores = []
-
-    for size_score, uniq_score in base_metrics:
+    for size_score, uniq_score in base_metrics:   # notal final combinada
         dataset_score = 0.5 * size_score + 0.5 * uniq_score
         scores.append(dataset_score)
 
@@ -45,15 +46,9 @@ def get_dataset_scores(config_path):
 
 # Teste rápido local
 if __name__ == "__main__":
-    # config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/FEMNIST/config.json"
-    # config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/EMNIST/config.json"
-    # config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/Cifar100/config.json"
 
-
-
-    config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/FashionMNIST/config.json"
     config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/MNIST/config.json"
-    config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/Cifar10/config.json"
+    config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/FashionMNIST/config.json"
     print("== Scores ==")
     print(get_dataset_scores(config_path))
 

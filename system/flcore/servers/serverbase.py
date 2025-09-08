@@ -10,6 +10,7 @@ from utils.dlg import DLG
 from .service import ServicoSelecaoClientes
 import os
 import re
+from utils.dbinfo import get_dataset_scores
 import h5py
 
 class Server(object):
@@ -127,7 +128,7 @@ class Server(object):
             random_clients = list(np.random.choice(remaining_clients, random_k, replace=False))
 
             for i, c in enumerate(self.clients):
-                medias_ponderadas[c.id] = c.penalized_accuracy  # Armazena para passar ao serviço
+                medias_ponderadas[c.id] = c.test_accuracy  # Armazena para passar ao serviço
 
             # Junta os selecionados
             selected_clients = top_clients + random_clients
@@ -194,69 +195,50 @@ class Server(object):
 
         return selected_clients
     
+        # config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/EMNIST/config.json"
+        # config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/Cifar100/config.json"
+        # config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/FEMNIST/config.json"
+        # config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/Cifar10/config.json"
+   
     #v4
     def select_clients(self):
-        """Método de seleção de clientes com penalização automática"""
-        from utils.dbinfo import get_dataset_scores
-
-        # Reset das flags de treinamento de todos os clientes
+        # chaves para saber quais clinetes devem ter sua acuracia bruta atualizada
         for client in self.clients:
             client.reset_training_flag()
-        config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/EMNIST/config.json"
-        config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/Cifar100/config.json"
-        config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/FEMNIST/config.json"
 
-        config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/FashionMNIST/config.json"
         config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/MNIST/config.json"
-        config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/Cifar10/config.json"
+        config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/FashionMNIST/config.json"
         dataset_scores = get_dataset_scores(config_path)
 
-        # Verifica se há clientes com acurácia > 0
-        if all(c.raw_test_accuracy > 0 for c in self.clients):
-            # Calcula score ponderado para cada cliente
+        # Se TODOS tiverem acurácia > 0
+        if all(c.test_accuracy > 0 for c in self.clients):
             clientes_com_score = []
-            medias_ponderadas = {}  # Dicionário para armazenar as médias por cliente
-            
             for i, c in enumerate(self.clients):
-                # media_ponderada = c.penalized_accuracy 
-                media_ponderada =  ((0.5*c.penalized_accuracy) + (0.5 * dataset_scores[i])) / (1+c.selection_count)                
-                clientes_com_score.append((c, media_ponderada))
-                medias_ponderadas[c.id] = media_ponderada  # Armazena para passar ao serviço
+                media =  ((0.5*c.test_accuracy) + (0.5 * dataset_scores[i])) / (1+c.selection_count)                
+                clientes_com_score.append((c, media))
 
             sorted_clients = sorted(clientes_com_score, key=lambda x: x[1], reverse=True) #maires medias
 
-            # Divide a seleção: metade top-k, metade aleatória
-            top_k = self.num_join_clients
-            random_k = self.num_join_clients - top_k 
-
-            top_clients = [c for c, _ in sorted_clients[:top_k]]
+            # Melhores medias são selecionadas(20%)
+            selected_clients = [c for c, _ in sorted_clients[:self.num_join_clients]]
             
-            # Seleciona aleatoriamente random_k clientes que não estão nos top_k
-            remaining_clients = [c for c in self.clients if c not in top_clients]
-            random_clients = list(np.random.choice(remaining_clients, random_k, replace=False))
-
-            selected_clients = top_clients
-            
-            # Marca os clientes selecionados (contador é incrementado automaticamente)
+            # Marca os clientes selecionados
             for c in selected_clients:
-                c.mark_as_trained(self.current_round)
+                c.mark_as_trained()
 
         else:
-            # Seleção aleatória se nenhum cliente tiver desempenho > 0
+            # Se NENHUM tiver acurácia > 0  (Fallback: Seleção aleatória)
             selected_clients = list(np.random.choice(self.clients, self.num_join_clients, replace=False))
             for c in selected_clients:
-                c.mark_as_trained(self.current_round)
-            top_clients = []
-            random_clients = selected_clients
-            # Medias zeradas para primeira rodada
-            medias_ponderadas = {c.id: 0.0 for c in self.clients}
-
-        # Exibe resumo com as médias ponderadas
-        from .service import ServicoSelecaoClientes
-        servico = ServicoSelecaoClientes()
-        servico.exibir_resumo_selecao(self.clients, top_clients, random_clients, medias_ponderadas)
+                c.mark_as_trained()
 
         return selected_clients
+
+        # Exibe resumo com as médias ponderadas
+        # from .service import ServicoSelecaoClientes
+        # servico = ServicoSelecaoClientes()
+        # servico.exibir_resumo_selecao(self.clients, top_clients, random_clients, medias_ponderadas)
+
   
     def send_models(self):
         assert (len(self.clients) > 0)

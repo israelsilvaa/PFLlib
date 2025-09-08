@@ -7,7 +7,7 @@ import numpy as np
 
 # -------- Configuração de suavização --------
 smooth = True       # <<<<<< chave: coloque False se não quiser suavizar
-window_size = 1    # tamanho da janela da média móvel
+window_size = 1   # tamanho da janela da média móvel
 
 def moving_average(x, w):
     """Aplica média móvel em um array"""
@@ -22,7 +22,7 @@ if len(sys.argv) < 2 or len(sys.argv) > 5:
 base_dir = "../results"
 
 # Labels fixos
-labels = ["Padrão", "v2", "v3", "v4"]
+labels = ["Padrão", "versão 3", "v3", "v4"]
 
 # Monta lista de caminhos e mapeia com labels (até o número de argumentos passados)
 file_label_map = {}
@@ -30,9 +30,10 @@ for i, file_id in enumerate(sys.argv[1:]):
     # Mantive todos os datasets como no seu código
     filename = f"Cifar10_FedAvg_test_{file_id}.h5"
     filename = f"EMNIST_FedAvg_test_{file_id}.h5"
+
     filename = f"FashionMNIST_FedAvg_test_{file_id}.h5"
-    filename = f"Cifar100_FedAvg_test_{file_id}.h5"
     filename = f"Cifar10_FedAvg_test_{file_id}.h5"
+    filename = f"Cifar100_FedAvg_test_{file_id}.h5"
     filename = f"MNIST_FedAvg_test_{file_id}.h5"
     file_path = os.path.join(base_dir, filename)
     file_label_map[file_path] = labels[i]
@@ -61,26 +62,44 @@ for path, label in file_label_map.items():
 # -------- Cálculo das médias finais --------
 n_tail = 50
 print(f"\n=== Médias das últimas {n_tail} rodadas ===")
+labels = list(data.keys())
+base_label = labels[0]  # Considera o primeiro como referência
 for label, d in data.items():
     acc_mean = np.mean(d["acc"][-n_tail:])
     loss_mean = np.mean(d["loss"][-n_tail:])
-    print(f"{label:8s} -> Acurácia média = {acc_mean:.4f}, Perda média = {loss_mean:.4f}")
+    if label != base_label:
+        acc_gain = (acc_mean - np.mean(data[base_label]["acc"][-n_tail:])) / np.mean(data[base_label]["acc"][-n_tail:]) * 100
+        loss_gain = (loss_mean - np.mean(data[base_label]["loss"][-n_tail:])) / np.mean(data[base_label]["loss"][-n_tail:]) * 100
+        print(f"{label:8s} -> Acurácia média = {acc_mean:.4f}, Perda média = {loss_mean:.4f} ({acc_gain:.2f}% / {loss_gain:.2f}%)")
+    else:
+        print(f"{label:8s} -> Acurácia média = {acc_mean:.4f}, Perda média = {loss_mean:.4f}")
 
 # -------- Análises adicionais --------
 print("\n=== Análises adicionais ===")
 
-# 1. Quem convergiu mais nas primeiras 50 rodadas
 early_rounds = 50
 for label, d in data.items():
     acc_mean_early = np.mean(d["acc"][:early_rounds])
-    print(f"{label:8s} -> Média de acurácia nas primeiras {early_rounds} rodadas = {acc_mean_early:.4f}")
-print("\n")
+    loss_mean_early = np.mean(d["loss"][:early_rounds])
 
-# 2. Quem é mais estável (desvio padrão nas últimas N rodadas)
-for label, d in data.items():
-    acc_std = np.std(d["acc"][-n_tail:])
-    print(f"{label:8s} -> Desvio padrão (estabilidade) = {acc_std:.4f}")
+    if label != base_label:
+        acc_gain_early = (acc_mean_early - np.mean(data[base_label]["acc"][:early_rounds])) / np.mean(data[base_label]["acc"][:early_rounds]) * 100
+        loss_gain_early = (loss_mean_early - np.mean(data[base_label]["loss"][:early_rounds])) / np.mean(data[base_label]["loss"][:early_rounds]) * 100
+        print(f"{label:8s} -> Média de acurácia = {acc_mean_early:.4f}, "
+              f"Média de perda = {loss_mean_early:.4f} "
+              f"({acc_gain_early:.2f}% / {loss_gain_early:.2f}%) nas primeiras {early_rounds} rodadas")
+    else:
+        print(f"{label:8s} -> Média de acurácia = {acc_mean_early:.4f}, "
+              f"Média de perda = {loss_mean_early:.4f} nas primeiras {early_rounds} rodadas")
 
+# Estabilidade (desvio padrão)
+# for label, d in data.items():
+#     acc_std = np.std(d["acc"][-n_tail:])
+#     if label != base_label:
+#         acc_std_gain = (np.std(data[base_label]["acc"][-n_tail:]) - acc_std) / np.std(data[base_label]["acc"][-n_tail:]) * 100
+#         print(f"{label:8s} -> Desvio padrão (estabilidade) = {acc_std:.4f} ({acc_std_gain:.2f}%)")
+#     else:
+#         print(f"{label:8s} -> Desvio padrão (estabilidade) = {acc_std:.4f}")
 
 
 # -------- Plots --------
@@ -95,7 +114,7 @@ for label, d in data.items():
     plt.plot(acc, label=label)
 plt.xlabel('Rodada')
 plt.ylabel('Acurácia')
-plt.title('Comparação de Acurácia por Rodada')
+plt.title('Acurácia por Rodada')
 plt.gca().yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
 plt.grid(True, linestyle='--', alpha=0.6)
 plt.legend()
@@ -109,7 +128,7 @@ for label, d in data.items():
     plt.plot(loss, label=label)
 plt.xlabel('Rodada')
 plt.ylabel('Perda')
-plt.title('Comparação de Perda por Rodada')
+plt.title('Perda por Rodada')
 plt.grid(True, linestyle='--', alpha=0.6)
 plt.legend()
 

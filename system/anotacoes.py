@@ -51,6 +51,13 @@
     # media (5acc + 5db)/count e a baseDados (0.5 * size_score + 0.5 * uniq_score)
 
 
+    # 4  D  v1           300        20 clientes  cifar10         A                                
+    # 5  D  v4           300        20 clientes  cifar10         A  
+
+    # 6  D  v1           300        20 clientes  cifar100         Acurácia média = 0.2313, Perda média = 2.7165  X                              
+    # 7  D  v4           300        20 clientes  cifar100         Acurácia média = 0.2333, Perda média = 2.6956  X
+
+
 
     #          TESTE FINAL
     # ID  -  versão   -   epocas   - observação                       -    bestAcc  -  mediaAcc         -        loss
@@ -74,13 +81,12 @@
     #### 2  D  v1           300        20 clientes  FashionMnist     Acurácia média = 0.6990, Perda média = 0.9185  X                        
     #### 3  D  v4           300        20 clientes  FashionMnist     Acurácia média = 0.7322, Perda média = 0.7809  X
 
-    # 6  D  v1           300        20 clientes  cifar100         Acurácia média = 0.2313, Perda média = 2.7165  X                              
-    # 7  D  v4           300        20 clientes  cifar100         Acurácia média = 0.2333, Perda média = 2.6956  X
+    # 4  D  v1           300        100 clientes  FashionMnist                             
+    # 5  D  v4           300        100 clientes  FashionMnist     
 
-    # 4  D  v1           300        20 clientes  cifar10         A                                
-    # 5  D  v4           300        20 clientes  cifar10         A  
-    # ver o cifar 100 com 100 clinetes?
-
+    # 44  D  v1           300        100 clientes  Mnist e seed 2
+    # 45  D  v4           300        100 clientes  Mnist e seed 2         
+    
 
 
     # SELECIONA os top-k clientes com melhor desempenho para as próximas rodadas de treino

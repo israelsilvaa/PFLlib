@@ -52,9 +52,9 @@ class Client(object):
         self.learning_rate_decay = args.learning_rate_decay
         
         # CORREÇÃO 1: Variáveis para controlar acurácia e penalização
-        self.raw_test_accuracy = 0.0001  # Acurácia bruta (sem penalização)
-        self.local_test_accuracy = 0.0  # Acurácia local após treinamento
+        self.test_accuracy = 0.0001  # Acurácia bruta (sem penalização)
         self.selection_count = 1  # Contador de seleções
+        self.local_test_accuracy = 0.0  # Acurácia local após treinamento
         self.was_trained_this_round = False  # Flag para indicar se foi treinado nesta rodada
         self.last_training_round = -1  # Última rodada em que foi treinado
 
@@ -82,25 +82,6 @@ class Client(object):
         for param, new_param in zip(model.parameters(), new_params):
             param.data = new_param.data.clone()
 
-    # CORREÇÃO 2: Propriedade que calcula acurácia penalizada automaticamente
-    @property
-    def penalized_accuracy(self):
-        """
-        Calcula a acurácia penalizada baseada no número de seleções.
-        Fórmula: acurácia_bruta / (1 + selection_count)
-        """
-        if self.selection_count == 0:
-            return self.raw_test_accuracy
-        return self.raw_test_accuracy 
-    
-    @property 
-    def test_accuracy(self):
-        """
-        Propriedade que retorna a acurácia penalizada para compatibilidade
-        """
-        return self.penalized_accuracy
-    
-
     # CORREÇÃO 3: Método para calcular acurácia local após treinamento
     def calculate_local_accuracy(self):
         """Calcula a acurácia local do cliente após o treinamento"""
@@ -124,11 +105,15 @@ class Client(object):
 
         # Atualiza a acurácia bruta (sem penalização)
         self.local_test_accuracy = test_acc / test_num if test_num > 0 else 0.0
-        self.raw_test_accuracy = self.local_test_accuracy  # Atualiza a acurácia bruta
+        self.test_accuracy = self.local_test_accuracy  # Atualiza a acurácia bruta
         
         return self.local_test_accuracy
 
     def test_metrics(self):
+        # Se foi treinado nesta rodada, usa a acurácia local calculada
+        if self.was_trained_this_round:
+            self.test_accuracy = self.local_test_accuracy
+        # Caso contrário, mantém a acurácia bruta anterior (não atualiza)
         """Método original mantido para compatibilidade com o servidor"""
         testloaderfull = self.load_test_data()
         self.model.eval()
@@ -164,12 +149,9 @@ class Client(object):
 
         auc = metrics.roc_auc_score(y_true, y_prob, average='micro')
 
-        # CORREÇÃO 4: Atualiza raw_test_accuracy apenas se foi treinado nesta rodada
-        current_accuracy = test_acc / test_num if test_num > 0 else 0.0
-        
         # Se foi treinado nesta rodada, usa a acurácia local calculada
         if self.was_trained_this_round:
-            self.raw_test_accuracy = self.local_test_accuracy
+            self.test_accuracy = self.local_test_accuracy
         # Caso contrário, mantém a acurácia bruta anterior (não atualiza)
         
         # A propriedade test_accuracy retornará automaticamente a versão penalizada
@@ -197,10 +179,9 @@ class Client(object):
         return losses, train_num
 
     # CORREÇÃO 5: Marcar quando o cliente foi treinado (com incremento automático)
-    def mark_as_trained(self, round_num):
+    def mark_as_trained(self):
         """Marca o cliente como treinado nesta rodada e incrementa contador de seleções"""
         self.was_trained_this_round = True
-        self.last_training_round = round_num
         self.selection_count += 1  # Incrementa automaticamente o contador
 
     def reset_training_flag(self):
