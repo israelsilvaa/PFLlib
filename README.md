@@ -43,7 +43,7 @@ No terminal Anaconda, digite:
 💡 Dica: Se usar CPU, troque por `env_cpu.yaml`:
 
 ```bash
-    $ conda env create -f env_cpu.yaml
+    $ conda env create -f env_cuda_latest.yaml
 ```
 
 Depois, ative o ambiente:
@@ -66,19 +66,21 @@ Base: **MNIST**
 | `-gr` | Global Rounds             | 50     | São as **rodadas de comunicação** (20 rounds)      |
 | `-jr` | Join Ratio                | 0.2    | Proporção de **clientes por rodada** (0.2 × 20 = 4)|
 | `-nc` | Number of Clients         | 20     | Número total de **clientes disponíveis** no sistema|
+| `-did` | GPU ou CPU         | 0     | 0 para usar GPU CUDA ou 1 para CPU|
 
 
 ```bash
-    $ python main.py -data MNIST -m CNN -algo FedAvg -gr 300 -jr 0.2 -nc 100
-    $ python main.py -data EMNIST -m CNN -algo FedAvg -gr 300 -jr 0.2 -nc 100
-    $ python main.py -data Cifar10 -m CNN -algo FedAvg -gr 300 -jr 0.2 -nc 100
-    $ python main.py -data Cifar100 -m CNN -algo FedAvg -gr 300 -jr 0.2 -ncl 100
+    $ python main.py -data MNIST -m CNN -algo FedAvg -gr 300 -jr 0.2 -nc 100 -did 0
+    $ python main.py -data EMNIST -m CNN -algo FedAvg -gr 300 -jr 0.2 -nc 100 -did 0
+    $ python main.py -data Cifar10 -m CNN -algo FedAvg -gr 300 -jr 0.2 -nc 100 -did 0
+    $ python main.py -data Cifar100 -m CNN -algo FedAvg -gr 100 -jr 0.2 -ncl 100 -did 0
 ```
 
 para criar distribuição MNIST, EMNIST, Cifar100 
 ```bash
     $ python generate_EMNIST.py noniid - dir
     $ python generate_MNIST.py noniid - dir
+    $ python generate_FashionMNIST.py noniid - dir
     $ python generate_Cifar100.py noniid - dir
 ```
 

@@ -206,8 +206,11 @@ class Server(object):
         for client in self.clients:
             client.reset_training_flag()
 
-        config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/MNIST/config.json"
         config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/FashionMNIST/config.json"
+        config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/MNIST/config.json"
+        config_path = "C:/Users/Israelsilvaa/Documents/GitHub/PFLlib/dataset/Cifar100/config.json"
+
+        # mudar isso sempre em severbase, dbinfo e plot_results2
         dataset_scores = get_dataset_scores(config_path)
 
         # Se TODOS tiverem acurácia > 0

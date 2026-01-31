@@ -33,8 +33,8 @@ for i, file_id in enumerate(sys.argv[1:]):
 
     filename = f"FashionMNIST_FedAvg_test_{file_id}.h5"
     filename = f"Cifar10_FedAvg_test_{file_id}.h5"
-    filename = f"Cifar100_FedAvg_test_{file_id}.h5"
     filename = f"MNIST_FedAvg_test_{file_id}.h5"
+    filename = f"Cifar100_FedAvg_test_{file_id}.h5"
     file_path = os.path.join(base_dir, filename)
     file_label_map[file_path] = labels[i]
 
